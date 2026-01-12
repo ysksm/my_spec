@@ -1,0 +1,32 @@
+{
+  "name": "ssh-command-tool3",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SSH-based remote browser debugging and automation tool with CDP support",
+  "workspaces": [
+    "packages/*",
+    "packages/gui/*"
+  ],
+  "scripts": {
+    "build": "bun run build:core && bun run build:cli && bun run build:gui",
+    "build:core": "bun build packages/core/src/index.ts --outdir packages/core/dist --target bun",
+    "build:cli": "bun build packages/cli/src/index.ts --outdir packages/cli/dist --target bun",
+    "build:gui": "bun build packages/gui/server/src/index.ts --outdir packages/gui/server/dist --target bun",
+    "test": "bun test",
+    "test:core": "bun test packages/core",
+    "test:cli": "bun test packages/cli",
+    "lint": "biome check .",
+    "lint:fix": "biome check --apply .",
+    "format": "biome format --write .",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf packages/*/dist packages/gui/*/dist"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.5.0",
+    "@types/bun": "latest",
+    "typescript": "^5.4.0"
+  },
+  "engines": {
+    "bun": ">=1.1.0"
+  }
+}
