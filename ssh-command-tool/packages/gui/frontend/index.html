@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SSH Command Tool 3</title>
+  <link rel="stylesheet" href="src/styles.css">
+</head>
+<body>
+  <div id="app">
+    <header class="header">
+      <h1>SSH Command Tool 3</h1>
+      <div id="connection-status" class="status disconnected">
+        <span class="status-dot"></span>
+        <span class="status-text">Disconnected</span>
+      </div>
+    </header>
+
+    <nav class="tabs">
+      <button class="tab active" data-tab="connections">Connections</button>
+      <button class="tab" data-tab="session">Session</button>
+      <button class="tab" data-tab="browser">Browser</button>
+      <button class="tab" data-tab="network">Network</button>
+    </nav>
+
+    <main class="content">
+      <!-- Connections Tab -->
+      <section id="connections-tab" class="tab-content active">
+        <div class="section-header">
+          <h2>SSH Connections</h2>
+          <button id="add-connection-btn" class="btn btn-primary">Add Connection</button>
+        </div>
+        <div id="connections-list" class="connections-list">
+          <p class="empty-state">Loading connections...</p>
+        </div>
+      </section>
+
+      <!-- Session Tab -->
+      <section id="session-tab" class="tab-content">
+        <div class="session-controls">
+          <h2>Session Control</h2>
+          <div id="session-status" class="session-status">
+            <div class="status-row">
+              <span class="label">SSH:</span>
+              <span class="value" id="ssh-status">Disconnected</span>
+            </div>
+            <div class="status-row">
+              <span class="label">Port Forward:</span>
+              <span class="value" id="pf-status">Inactive</span>
+            </div>
+            <div class="status-row">
+              <span class="label">Browser:</span>
+              <span class="value" id="browser-status">Stopped</span>
+            </div>
+            <div class="status-row">
+              <span class="label">CDP:</span>
+              <span class="value" id="cdp-status">Disconnected</span>
+            </div>
+          </div>
+          <div class="button-group">
+            <button id="start-session-btn" class="btn btn-success">Start Session</button>
+            <button id="stop-session-btn" class="btn btn-danger" disabled>Stop Session</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Browser Tab -->
+      <section id="browser-tab" class="tab-content">
+        <div class="browser-controls">
+          <div class="url-bar">
+            <button id="back-btn" class="btn btn-icon" title="Back">←</button>
+            <button id="forward-btn" class="btn btn-icon" title="Forward">→</button>
+            <button id="reload-btn" class="btn btn-icon" title="Reload">↻</button>
+            <input type="text" id="url-input" placeholder="Enter URL..." />
+            <button id="go-btn" class="btn btn-primary">Go</button>
+          </div>
+          <div class="page-info">
+            <span id="page-title">-</span>
+          </div>
+          <div class="button-group">
+            <button id="screenshot-btn" class="btn">Take Screenshot</button>
+          </div>
+          <div id="screenshot-preview" class="screenshot-preview"></div>
+        </div>
+      </section>
+
+      <!-- Network Tab -->
+      <section id="network-tab" class="tab-content">
+        <div class="network-controls">
+          <div class="button-group">
+            <button id="start-recording-btn" class="btn btn-success">Start Recording</button>
+            <button id="stop-recording-btn" class="btn btn-danger" disabled>Stop Recording</button>
+            <button id="clear-recording-btn" class="btn">Clear</button>
+            <button id="export-har-btn" class="btn">Export HAR</button>
+          </div>
+          <div id="recording-status" class="recording-status">
+            <span class="dot"></span>
+            <span class="text">Not recording</span>
+          </div>
+        </div>
+        <div id="network-table" class="network-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Method</th>
+                <th>Status</th>
+                <th>Type</th>
+                <th>Size</th>
+                <th>Time</th>
+                <th>URL</th>
+              </tr>
+            </thead>
+            <tbody id="network-entries">
+              <tr><td colspan="6" class="empty">No requests recorded</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <!-- Add Connection Modal -->
+    <div id="add-connection-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Add Connection</h3>
+          <button class="close-btn">&times;</button>
+        </div>
+        <form id="add-connection-form">
+          <div class="form-group">
+            <label for="conn-name">Name</label>
+            <input type="text" id="conn-name" required />
+          </div>
+          <div class="form-group">
+            <label for="conn-host">Host</label>
+            <input type="text" id="conn-host" required />
+          </div>
+          <div class="form-group">
+            <label for="conn-port">Port</label>
+            <input type="number" id="conn-port" value="22" required />
+          </div>
+          <div class="form-group">
+            <label for="conn-username">Username</label>
+            <input type="text" id="conn-username" required />
+          </div>
+          <div class="form-group">
+            <label for="conn-auth-type">Authentication</label>
+            <select id="conn-auth-type">
+              <option value="privateKey">Private Key</option>
+              <option value="password">Password</option>
+            </select>
+          </div>
+          <div class="form-group" id="password-group" style="display: none;">
+            <label for="conn-password">Password</label>
+            <input type="password" id="conn-password" />
+          </div>
+          <div class="form-group" id="key-group">
+            <label for="conn-key-path">Private Key Path</label>
+            <input type="text" id="conn-key-path" value="~/.ssh/id_rsa" />
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn" id="cancel-add-btn">Cancel</button>
+            <button type="submit" class="btn btn-primary">Add</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Start Session Modal -->
+    <div id="start-session-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Start Session</h3>
+          <button class="close-btn">&times;</button>
+        </div>
+        <form id="start-session-form">
+          <div class="form-group">
+            <label for="session-connection">Connection</label>
+            <select id="session-connection" required></select>
+          </div>
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="session-headless" checked />
+              Headless Mode
+            </label>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn" id="cancel-session-btn">Cancel</button>
+            <button type="submit" class="btn btn-success">Start</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+  </div>
+
+  <script src="src/main.js"></script>
+</body>
+</html>
