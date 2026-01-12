@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uint8配列 vs Uint8Array 比較</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #00d4ff;
+            text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .section h2 {
+            color: #00d4ff;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section h2::before {
+            content: '';
+            width: 4px;
+            height: 25px;
+            background: #00d4ff;
+            border-radius: 2px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .info-card {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            border-left: 4px solid #00d4ff;
+        }
+
+        .info-card.normal-array {
+            border-left-color: #ff6b6b;
+        }
+
+        .info-card.typed-array {
+            border-left-color: #4ecdc4;
+        }
+
+        .info-card h3 {
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+
+        .info-card.normal-array h3 {
+            color: #ff6b6b;
+        }
+
+        .info-card.typed-array h3 {
+            color: #4ecdc4;
+        }
+
+        .info-card ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .info-card li {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .info-card li::before {
+            content: '→';
+            color: #00d4ff;
+        }
+
+        .benchmark-controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        .benchmark-controls label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .benchmark-controls input[type="number"] {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            padding: 10px;
+            color: #fff;
+            width: 150px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 212, 255, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .result-card {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .result-card h4 {
+            margin-bottom: 15px;
+            color: #aaa;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .result-values {
+            display: flex;
+            justify-content: space-around;
+            gap: 20px;
+        }
+
+        .result-value {
+            flex: 1;
+        }
+
+        .result-value .label {
+            font-size: 0.8rem;
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        .result-value .value {
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+
+        .result-value.normal .value {
+            color: #ff6b6b;
+        }
+
+        .result-value.typed .value {
+            color: #4ecdc4;
+        }
+
+        .winner {
+            background: rgba(78, 205, 196, 0.2);
+            border: 1px solid #4ecdc4;
+        }
+
+        .bar-chart {
+            margin-top: 15px;
+            height: 30px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+            overflow: hidden;
+            display: flex;
+        }
+
+        .bar {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: bold;
+            transition: width 0.5s ease;
+        }
+
+        .bar.normal {
+            background: linear-gradient(90deg, #ff6b6b 0%, #ee5a5a 100%);
+        }
+
+        .bar.typed {
+            background: linear-gradient(90deg, #4ecdc4 0%, #3dbdb5 100%);
+        }
+
+        .code-comparison {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+        }
+
+        .code-block {
+            background: #1e1e1e;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .code-header {
+            padding: 10px 15px;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .code-block.normal .code-header {
+            background: rgba(255, 107, 107, 0.3);
+            color: #ff6b6b;
+        }
+
+        .code-block.typed .code-header {
+            background: rgba(78, 205, 196, 0.3);
+            color: #4ecdc4;
+        }
+
+        .code-content {
+            padding: 15px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            overflow-x: auto;
+            white-space: pre;
+        }
+
+        .code-content .comment {
+            color: #6a9955;
+        }
+
+        .code-content .keyword {
+            color: #569cd6;
+        }
+
+        .code-content .number {
+            color: #b5cea8;
+        }
+
+        .code-content .string {
+            color: #ce9178;
+        }
+
+        .code-content .method {
+            color: #dcdcaa;
+        }
+
+        .interactive-demo {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .demo-controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .demo-output {
+            background: #1e1e1e;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .demo-output .log {
+            margin: 5px 0;
+            padding: 5px;
+            border-radius: 3px;
+        }
+
+        .demo-output .log.info {
+            background: rgba(0, 212, 255, 0.1);
+            border-left: 3px solid #00d4ff;
+        }
+
+        .demo-output .log.success {
+            background: rgba(78, 205, 196, 0.1);
+            border-left: 3px solid #4ecdc4;
+        }
+
+        .demo-output .log.warning {
+            background: rgba(255, 193, 7, 0.1);
+            border-left: 3px solid #ffc107;
+        }
+
+        .demo-output .log.error {
+            background: rgba(255, 107, 107, 0.1);
+            border-left: 3px solid #ff6b6b;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        th {
+            background: rgba(0, 212, 255, 0.1);
+            color: #00d4ff;
+        }
+
+        tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .status-good {
+            color: #4ecdc4;
+        }
+
+        .status-bad {
+            color: #ff6b6b;
+        }
+
+        .status-neutral {
+            color: #ffc107;
+        }
+
+        .memory-visual {
+            display: flex;
+            gap: 2px;
+            flex-wrap: wrap;
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+        }
+
+        .memory-cell {
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 3px;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+
+        .memory-cell.normal {
+            background: rgba(255, 107, 107, 0.6);
+        }
+
+        .memory-cell.typed {
+            background: rgba(78, 205, 196, 0.6);
+        }
+
+        .summary-box {
+            background: linear-gradient(135deg, rgba(0, 212, 255, 0.1) 0%, rgba(78, 205, 196, 0.1) 100%);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .summary-box h3 {
+            color: #00d4ff;
+            margin-bottom: 15px;
+        }
+
+        .summary-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .summary-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .summary-icon.perf {
+            background: rgba(78, 205, 196, 0.3);
+        }
+
+        .summary-icon.ease {
+            background: rgba(255, 107, 107, 0.3);
+        }
+
+        .summary-icon.mem {
+            background: rgba(0, 212, 255, 0.3);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .loading {
+            animation: pulse 1s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Uint8配列 vs Uint8Array 徹底比較</h1>
+
+        <!-- 基本情報セクション -->
+        <div class="section">
+            <h2>基本情報</h2>
+            <div class="info-grid">
+                <div class="info-card normal-array">
+                    <h3>通常の配列 (Array)</h3>
+                    <ul>
+                        <li>JavaScriptの標準配列オブジェクト</li>
+                        <li>任意の型を混在可能（Number, String, Object等）</li>
+                        <li>動的にサイズ変更可能</li>
+                        <li>各要素が独立したメモリ領域を持つ</li>
+                        <li>豊富なメソッド（map, filter, reduce等）</li>
+                        <li>64ビット浮動小数点数として内部保存</li>
+                    </ul>
+                </div>
+                <div class="info-card typed-array">
+                    <h3>Uint8Array (型付き配列)</h3>
+                    <ul>
+                        <li>ArrayBufferのビューとして動作</li>
+                        <li>0-255の整数のみ格納可能</li>
+                        <li>固定長（生成時にサイズ決定）</li>
+                        <li>連続したメモリブロックを使用</li>
+                        <li>一部のメソッドのみサポート</li>
+                        <li>1バイト（8ビット）で各要素を保存</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- パフォーマンスベンチマーク -->
+        <div class="section">
+            <h2>パフォーマンスベンチマーク</h2>
+            <div class="benchmark-controls">
+                <label>
+                    配列サイズ:
+                    <input type="number" id="arraySize" value="1000000" min="1000" max="10000000">
+                </label>
+                <label>
+                    反復回数:
+                    <input type="number" id="iterations" value="100" min="10" max="1000">
+                </label>
+                <button id="runBenchmark" onclick="runBenchmarks()">ベンチマーク実行</button>
+            </div>
+
+            <div class="results-grid" id="benchmarkResults">
+                <div class="result-card">
+                    <h4>配列生成速度</h4>
+                    <div class="result-values">
+                        <div class="result-value normal">
+                            <div class="label">通常配列</div>
+                            <div class="value" id="createNormal">-</div>
+                        </div>
+                        <div class="result-value typed">
+                            <div class="label">Uint8Array</div>
+                            <div class="value" id="createTyped">-</div>
+                        </div>
+                    </div>
+                    <div class="bar-chart" id="createBar"></div>
+                </div>
+
+                <div class="result-card">
+                    <h4>書き込み速度</h4>
+                    <div class="result-values">
+                        <div class="result-value normal">
+                            <div class="label">通常配列</div>
+                            <div class="value" id="writeNormal">-</div>
+                        </div>
+                        <div class="result-value typed">
+                            <div class="label">Uint8Array</div>
+                            <div class="value" id="writeTyped">-</div>
+                        </div>
+                    </div>
+                    <div class="bar-chart" id="writeBar"></div>
+                </div>
+
+                <div class="result-card">
+                    <h4>読み取り速度</h4>
+                    <div class="result-values">
+                        <div class="result-value normal">
+                            <div class="label">通常配列</div>
+                            <div class="value" id="readNormal">-</div>
+                        </div>
+                        <div class="result-value typed">
+                            <div class="label">Uint8Array</div>
+                            <div class="value" id="readTyped">-</div>
+                        </div>
+                    </div>
+                    <div class="bar-chart" id="readBar"></div>
+                </div>
+
+                <div class="result-card">
+                    <h4>イテレーション速度</h4>
+                    <div class="result-values">
+                        <div class="result-value normal">
+                            <div class="label">通常配列</div>
+                            <div class="value" id="iterNormal">-</div>
+                        </div>
+                        <div class="result-value typed">
+                            <div class="label">Uint8Array</div>
+                            <div class="value" id="iterTyped">-</div>
+                        </div>
+                    </div>
+                    <div class="bar-chart" id="iterBar"></div>
+                </div>
+
+                <div class="result-card">
+                    <h4>コピー速度</h4>
+                    <div class="result-values">
+                        <div class="result-value normal">
+                            <div class="label">通常配列</div>
+                            <div class="value" id="copyNormal">-</div>
+                        </div>
+                        <div class="result-value typed">
+                            <div class="label">Uint8Array</div>
+                            <div class="value" id="copyTyped">-</div>
+                        </div>
+                    </div>
+                    <div class="bar-chart" id="copyBar"></div>
+                </div>
+
+                <div class="result-card">
+                    <h4>推定メモリ使用量</h4>
+                    <div class="result-values">
+                        <div class="result-value normal">
+                            <div class="label">通常配列</div>
+                            <div class="value" id="memNormal">-</div>
+                        </div>
+                        <div class="result-value typed">
+                            <div class="label">Uint8Array</div>
+                            <div class="value" id="memTyped">-</div>
+                        </div>
+                    </div>
+                    <div class="bar-chart" id="memBar"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- メモリレイアウト視覚化 -->
+        <div class="section">
+            <h2>メモリレイアウトの違い</h2>
+            <div class="info-grid">
+                <div class="info-card normal-array">
+                    <h3>通常配列のメモリ</h3>
+                    <p style="margin-bottom: 10px; color: #aaa;">各要素が独立したメモリ領域（8バイト + オーバーヘッド）</p>
+                    <div class="memory-visual" id="normalMemory"></div>
+                    <p style="font-size: 0.85rem; color: #888;">
+                        ※ 実際には各要素はタグ付きポインタ（64ビット）として保存され、<br>
+                        オブジェクトへの参照やSMI（Small Integer）として最適化される場合もあります
+                    </p>
+                </div>
+                <div class="info-card typed-array">
+                    <h3>Uint8Arrayのメモリ</h3>
+                    <p style="margin-bottom: 10px; color: #aaa;">連続した1バイトのメモリブロック</p>
+                    <div class="memory-visual" id="typedMemory"></div>
+                    <p style="font-size: 0.85rem; color: #888;">
+                        ※ ArrayBufferとして連続したメモリ領域を確保<br>
+                        各要素は正確に1バイト（8ビット）を使用
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 扱いやすさ比較 -->
+        <div class="section">
+            <h2>扱いやすさ比較</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>機能・特性</th>
+                        <th>通常配列</th>
+                        <th>Uint8Array</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>map(), filter(), reduce()</td>
+                        <td class="status-good">○ 完全サポート</td>
+                        <td class="status-neutral">△ 返り値が通常配列</td>
+                    </tr>
+                    <tr>
+                        <td>push(), pop(), shift()</td>
+                        <td class="status-good">○ サポート</td>
+                        <td class="status-bad">✕ 非サポート（固定長）</td>
+                    </tr>
+                    <tr>
+                        <td>splice()</td>
+                        <td class="status-good">○ サポート</td>
+                        <td class="status-bad">✕ 非サポート</td>
+                    </tr>
+                    <tr>
+                        <td>slice()</td>
+                        <td class="status-good">○ サポート</td>
+                        <td class="status-good">○ サポート（同じ型を返す）</td>
+                    </tr>
+                    <tr>
+                        <td>set() - 一括代入</td>
+                        <td class="status-bad">✕ 非サポート</td>
+                        <td class="status-good">○ 高速な一括代入</td>
+                    </tr>
+                    <tr>
+                        <td>subarray()</td>
+                        <td class="status-bad">✕ 非サポート</td>
+                        <td class="status-good">○ 同じバッファを参照</td>
+                    </tr>
+                    <tr>
+                        <td>バイナリデータ操作</td>
+                        <td class="status-bad">✕ 不向き</td>
+                        <td class="status-good">○ 最適</td>
+                    </tr>
+                    <tr>
+                        <td>JSON.stringify()</td>
+                        <td class="status-good">○ 直接変換可能</td>
+                        <td class="status-neutral">△ 配列に変換必要</td>
+                    </tr>
+                    <tr>
+                        <td>スプレッド構文</td>
+                        <td class="status-good">○ 完全サポート</td>
+                        <td class="status-good">○ サポート</td>
+                    </tr>
+                    <tr>
+                        <td>型安全性</td>
+                        <td class="status-bad">✕ なし</td>
+                        <td class="status-good">○ 0-255に自動クランプ</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- コード例比較 -->
+        <div class="section">
+            <h2>コード例比較</h2>
+            <div class="code-comparison">
+                <div class="code-block normal">
+                    <div class="code-header">通常配列の使用例</div>
+                    <div class="code-content"><span class="comment">// 生成</span>
+<span class="keyword">const</span> arr = <span class="keyword">new</span> <span class="method">Array</span>(<span class="number">10</span>).<span class="method">fill</span>(<span class="number">0</span>);
+<span class="keyword">const</span> arr2 = [<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>];
+
+<span class="comment">// 動的追加</span>
+arr.<span class="method">push</span>(<span class="number">255</span>);
+arr.<span class="method">push</span>(<span class="number">300</span>);  <span class="comment">// 300のまま保存！</span>
+
+<span class="comment">// 配列操作</span>
+<span class="keyword">const</span> doubled = arr.<span class="method">map</span>(x => x * <span class="number">2</span>);
+<span class="keyword">const</span> filtered = arr.<span class="method">filter</span>(x => x > <span class="number">100</span>);
+<span class="keyword">const</span> sum = arr.<span class="method">reduce</span>((a, b) => a + b, <span class="number">0</span>);
+
+<span class="comment">// JSON変換</span>
+<span class="keyword">const</span> json = <span class="method">JSON.stringify</span>(arr);
+
+<span class="comment">// 型が混在可能（危険）</span>
+arr[<span class="number">0</span>] = <span class="string">"hello"</span>;  <span class="comment">// エラーにならない</span>
+arr[<span class="number">1</span>] = { x: <span class="number">1</span> };  <span class="comment">// オブジェクトも可</span></div>
+                </div>
+                <div class="code-block typed">
+                    <div class="code-header">Uint8Arrayの使用例</div>
+                    <div class="code-content"><span class="comment">// 生成</span>
+<span class="keyword">const</span> arr = <span class="keyword">new</span> <span class="method">Uint8Array</span>(<span class="number">10</span>);
+<span class="keyword">const</span> arr2 = <span class="keyword">new</span> <span class="method">Uint8Array</span>([<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>]);
+
+<span class="comment">// 値の設定（自動クランプ）</span>
+arr[<span class="number">0</span>] = <span class="number">255</span>;
+arr[<span class="number">1</span>] = <span class="number">300</span>;   <span class="comment">// 44になる（300 % 256）</span>
+arr[<span class="number">2</span>] = -<span class="number">1</span>;    <span class="comment">// 255になる</span>
+
+<span class="comment">// 一括代入（高速）</span>
+arr.<span class="method">set</span>([<span class="number">10</span>, <span class="number">20</span>, <span class="number">30</span>], <span class="number">0</span>);
+
+<span class="comment">// サブ配列（同じバッファを参照）</span>
+<span class="keyword">const</span> sub = arr.<span class="method">subarray</span>(<span class="number">0</span>, <span class="number">5</span>);
+
+<span class="comment">// バイナリ操作</span>
+<span class="keyword">const</span> buffer = arr.buffer;
+<span class="keyword">const</span> view = <span class="keyword">new</span> <span class="method">DataView</span>(buffer);
+
+<span class="comment">// Base64変換</span>
+<span class="keyword">const</span> base64 = <span class="method">btoa</span>(String.<span class="method">fromCharCode</span>(...arr));</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- インタラクティブデモ -->
+        <div class="section">
+            <h2>インタラクティブデモ</h2>
+            <div class="interactive-demo">
+                <div class="demo-controls">
+                    <button onclick="demoCreation()">生成方法</button>
+                    <button onclick="demoOverflow()">オーバーフロー動作</button>
+                    <button onclick="demoMethods()">メソッド比較</button>
+                    <button onclick="demoBinary()">バイナリ操作</button>
+                    <button onclick="demoConversion()">相互変換</button>
+                    <button onclick="clearDemo()">クリア</button>
+                </div>
+                <div class="demo-output" id="demoOutput">
+                    <div class="log info">デモボタンをクリックして、各機能の動作を確認してください</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 使用場面のまとめ -->
+        <div class="section">
+            <h2>使用場面のまとめ</h2>
+            <div class="summary-box">
+                <h3>Uint8Arrayを使うべき場面</h3>
+                <div class="summary-item">
+                    <div class="summary-icon perf">🚀</div>
+                    <div>
+                        <strong>大量のバイトデータ処理</strong><br>
+                        <span style="color: #aaa;">画像、音声、動画データの処理で圧倒的なパフォーマンス</span>
+                    </div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-icon mem">💾</div>
+                    <div>
+                        <strong>メモリ効率が重要な場合</strong><br>
+                        <span style="color: #aaa;">1要素1バイトで、通常配列の約8分の1のメモリ使用量</span>
+                    </div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-icon perf">🔌</div>
+                    <div>
+                        <strong>WebGL、WebAudio、WebSocket</strong><br>
+                        <span style="color: #aaa;">Web APIとのやり取りにはバイナリデータが必須</span>
+                    </div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-icon perf">📁</div>
+                    <div>
+                        <strong>ファイル読み書き</strong><br>
+                        <span style="color: #aaa;">FileReader、Blob、Fetchなどとの連携</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="summary-box" style="margin-top: 20px;">
+                <h3>通常配列を使うべき場面</h3>
+                <div class="summary-item">
+                    <div class="summary-icon ease">📝</div>
+                    <div>
+                        <strong>動的なサイズ変更が必要</strong><br>
+                        <span style="color: #aaa;">push, pop, spliceなどで要素の追加・削除が頻繁な場合</span>
+                    </div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-icon ease">🔧</div>
+                    <div>
+                        <strong>豊富な配列メソッドを活用</strong><br>
+                        <span style="color: #aaa;">map, filter, reduceなどの関数型プログラミング</span>
+                    </div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-icon ease">🎯</div>
+                    <div>
+                        <strong>小規模なデータ処理</strong><br>
+                        <span style="color: #aaa;">要素数が少ない場合はパフォーマンス差は無視できる</span>
+                    </div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-icon ease">📋</div>
+                    <div>
+                        <strong>JSONとの連携</strong><br>
+                        <span style="color: #aaa;">APIレスポンスやデータ保存で直接シリアライズ可能</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // メモリ視覚化の初期化
+        function initMemoryVisualization() {
+            const normalMemory = document.getElementById('normalMemory');
+            const typedMemory = document.getElementById('typedMemory');
+
+            const values = [65, 128, 200, 50, 99, 180, 33, 255];
+
+            normalMemory.innerHTML = values.map((v, i) =>
+                `<div class="memory-cell normal" title="要素${i}: ${v} (8バイト以上使用)">${v}</div>`
+            ).join('');
+
+            typedMemory.innerHTML = values.map((v, i) =>
+                `<div class="memory-cell typed" title="要素${i}: ${v} (1バイト使用)">${v}</div>`
+            ).join('');
+        }
+
+        // ベンチマーク実行
+        async function runBenchmarks() {
+            const btn = document.getElementById('runBenchmark');
+            btn.disabled = true;
+            btn.textContent = '実行中...';
+
+            const size = parseInt(document.getElementById('arraySize').value);
+            const iterations = parseInt(document.getElementById('iterations').value);
+
+            await new Promise(r => setTimeout(r, 100));
+
+            // 配列生成ベンチマーク
+            const createResults = benchmarkCreation(size, iterations);
+            updateResult('create', createResults);
+
+            await new Promise(r => setTimeout(r, 50));
+
+            // 書き込みベンチマーク
+            const writeResults = benchmarkWrite(size, iterations);
+            updateResult('write', writeResults);
+
+            await new Promise(r => setTimeout(r, 50));
+
+            // 読み取りベンチマーク
+            const readResults = benchmarkRead(size, iterations);
+            updateResult('read', readResults);
+
+            await new Promise(r => setTimeout(r, 50));
+
+            // イテレーションベンチマーク
+            const iterResults = benchmarkIteration(size, iterations);
+            updateResult('iter', iterResults);
+
+            await new Promise(r => setTimeout(r, 50));
+
+            // コピーベンチマーク
+            const copyResults = benchmarkCopy(size, iterations);
+            updateResult('copy', copyResults);
+
+            // メモリ使用量（推定）
+            const memResults = estimateMemory(size);
+            updateMemoryResult(memResults);
+
+            btn.disabled = false;
+            btn.textContent = 'ベンチマーク実行';
+        }
+
+        function benchmarkCreation(size, iterations) {
+            // 通常配列
+            const normalStart = performance.now();
+            for (let i = 0; i < iterations; i++) {
+                const arr = new Array(size).fill(0);
+            }
+            const normalTime = performance.now() - normalStart;
+
+            // Uint8Array
+            const typedStart = performance.now();
+            for (let i = 0; i < iterations; i++) {
+                const arr = new Uint8Array(size);
+            }
+            const typedTime = performance.now() - typedStart;
+
+            return { normal: normalTime / iterations, typed: typedTime / iterations };
+        }
+
+        function benchmarkWrite(size, iterations) {
+            const normalArr = new Array(size).fill(0);
+            const typedArr = new Uint8Array(size);
+
+            // 通常配列
+            const normalStart = performance.now();
+            for (let i = 0; i < iterations; i++) {
+                for (let j = 0; j < size; j++) {
+                    normalArr[j] = j % 256;
+                }
+            }
+            const normalTime = performance.now() - normalStart;
+
+            // Uint8Array
+            const typedStart = performance.now();
+            for (let i = 0; i < iterations; i++) {
+                for (let j = 0; j < size; j++) {
+                    typedArr[j] = j % 256;
+                }
+            }
+            const typedTime = performance.now() - typedStart;
+
+            return { normal: normalTime / iterations, typed: typedTime / iterations };
+        }
+
+        function benchmarkRead(size, iterations) {
+            const normalArr = new Array(size).fill(0).map((_, i) => i % 256);
+            const typedArr = new Uint8Array(size).map((_, i) => i % 256);
+            let sum = 0;
+
+            // 通常配列
+            const normalStart = performance.now();
+            for (let i = 0; i < iterations; i++) {
+                sum = 0;
+                for (let j = 0; j < size; j++) {
+                    sum += normalArr[j];
+                }
+            }
+            const normalTime = performance.now() - normalStart;
+
+            // Uint8Array
+            const typedStart = performance.now();
+            for (let i = 0; i < iterations; i++) {
+                sum = 0;
+                for (let j = 0; j < size; j++) {
+                    sum += typedArr[j];
+                }
+            }
+            const typedTime = performance.now() - typedStart;
+
+            return { normal: normalTime / iterations, typed: typedTime / iterations };
+        }
+
+        function benchmarkIteration(size, iterations) {
+            const normalArr = new Array(size).fill(0).map((_, i) => i % 256);
+            const typedArr = new Uint8Array(size).map((_, i) => i % 256);
+            let sum = 0;
+
+            // 通常配列 for-of
+            const normalStart = performance.now();
+            for (let i = 0; i < iterations; i++) {
+                sum = 0;
+                for (const val of normalArr) {
+                    sum += val;
+                }
+            }
+            const normalTime = performance.now() - normalStart;
+
+            // Uint8Array for-of
+            const typedStart = performance.now();
+            for (let i = 0; i < iterations; i++) {
+                sum = 0;
+                for (const val of typedArr) {
+                    sum += val;
+                }
+            }
+            const typedTime = performance.now() - typedStart;
+
+            return { normal: normalTime / iterations, typed: typedTime / iterations };
+        }
+
+        function benchmarkCopy(size, iterations) {
+            const normalArr = new Array(size).fill(0).map((_, i) => i % 256);
+            const typedArr = new Uint8Array(size).map((_, i) => i % 256);
+
+            // 通常配列
+            const normalStart = performance.now();
+            for (let i = 0; i < iterations; i++) {
+                const copy = [...normalArr];
+            }
+            const normalTime = performance.now() - normalStart;
+
+            // Uint8Array
+            const typedStart = performance.now();
+            for (let i = 0; i < iterations; i++) {
+                const copy = new Uint8Array(typedArr);
+            }
+            const typedTime = performance.now() - typedStart;
+
+            return { normal: normalTime / iterations, typed: typedTime / iterations };
+        }
+
+        function estimateMemory(size) {
+            // 通常配列: 各要素が約16バイト（64ビットタグ付きポインタ + オーバーヘッド）
+            const normalBytes = size * 16;
+            // Uint8Array: 各要素が1バイト + 少量のオーバーヘッド
+            const typedBytes = size + 64;
+
+            return {
+                normal: normalBytes,
+                typed: typedBytes
+            };
+        }
+
+        function updateResult(prefix, results) {
+            const normalEl = document.getElementById(`${prefix}Normal`);
+            const typedEl = document.getElementById(`${prefix}Typed`);
+            const barEl = document.getElementById(`${prefix}Bar`);
+
+            normalEl.textContent = results.normal.toFixed(2) + 'ms';
+            typedEl.textContent = results.typed.toFixed(2) + 'ms';
+
+            const total = results.normal + results.typed;
+            const normalPercent = (results.normal / total * 100).toFixed(1);
+            const typedPercent = (results.typed / total * 100).toFixed(1);
+
+            barEl.innerHTML = `
+                <div class="bar normal" style="width: ${normalPercent}%">${normalPercent}%</div>
+                <div class="bar typed" style="width: ${typedPercent}%">${typedPercent}%</div>
+            `;
+
+            // 勝者をハイライト
+            const card = normalEl.closest('.result-card');
+            card.classList.remove('winner');
+            if (results.typed < results.normal * 0.9) {
+                card.classList.add('winner');
+            }
+        }
+
+        function updateMemoryResult(results) {
+            const normalEl = document.getElementById('memNormal');
+            const typedEl = document.getElementById('memTyped');
+            const barEl = document.getElementById('memBar');
+
+            normalEl.textContent = formatBytes(results.normal);
+            typedEl.textContent = formatBytes(results.typed);
+
+            const total = results.normal + results.typed;
+            const normalPercent = (results.normal / total * 100).toFixed(1);
+            const typedPercent = (results.typed / total * 100).toFixed(1);
+
+            barEl.innerHTML = `
+                <div class="bar normal" style="width: ${normalPercent}%">${normalPercent}%</div>
+                <div class="bar typed" style="width: ${typedPercent}%">${typedPercent}%</div>
+            `;
+
+            const card = normalEl.closest('.result-card');
+            card.classList.add('winner');
+        }
+
+        function formatBytes(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        // デモ関数
+        function log(message, type = 'info') {
+            const output = document.getElementById('demoOutput');
+            output.innerHTML += `<div class="log ${type}">${message}</div>`;
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function clearDemo() {
+            document.getElementById('demoOutput').innerHTML = '';
+        }
+
+        function demoCreation() {
+            clearDemo();
+            log('=== 配列生成方法の比較 ===', 'info');
+
+            log('\n【通常配列】', 'info');
+            const arr1 = new Array(5).fill(0);
+            log(`new Array(5).fill(0) → [${arr1}]`);
+            const arr2 = [1, 2, 3, 4, 5];
+            log(`[1, 2, 3, 4, 5] → [${arr2}]`);
+            const arr3 = Array.from({length: 5}, (_, i) => i * 10);
+            log(`Array.from({length: 5}, (_, i) => i * 10) → [${arr3}]`);
+
+            log('\n【Uint8Array】', 'success');
+            const typed1 = new Uint8Array(5);
+            log(`new Uint8Array(5) → [${[...typed1]}]`);
+            const typed2 = new Uint8Array([1, 2, 3, 4, 5]);
+            log(`new Uint8Array([1, 2, 3, 4, 5]) → [${[...typed2]}]`);
+            const typed3 = Uint8Array.from({length: 5}, (_, i) => i * 10);
+            log(`Uint8Array.from({length: 5}, (_, i) => i * 10) → [${[...typed3]}]`);
+
+            log('\n【ArrayBufferから生成】', 'success');
+            const buffer = new ArrayBuffer(8);
+            const typed4 = new Uint8Array(buffer);
+            log(`const buffer = new ArrayBuffer(8);`);
+            log(`new Uint8Array(buffer) → length: ${typed4.length}`);
+        }
+
+        function demoOverflow() {
+            clearDemo();
+            log('=== オーバーフロー動作の比較 ===', 'info');
+
+            log('\n【通常配列】値がそのまま保存される', 'warning');
+            const arr = [];
+            arr.push(255);
+            log(`arr.push(255) → ${arr[0]}`);
+            arr.push(256);
+            log(`arr.push(256) → ${arr[1]} (そのまま256)`);
+            arr.push(300);
+            log(`arr.push(300) → ${arr[2]} (そのまま300)`);
+            arr.push(-1);
+            log(`arr.push(-1) → ${arr[3]} (そのまま-1)`);
+            arr.push(1.5);
+            log(`arr.push(1.5) → ${arr[4]} (小数もOK)`);
+
+            log('\n【Uint8Array】0-255に自動クランプ（mod 256）', 'success');
+            const typed = new Uint8Array(5);
+            typed[0] = 255;
+            log(`typed[0] = 255 → ${typed[0]}`);
+            typed[1] = 256;
+            log(`typed[1] = 256 → ${typed[1]} (256 % 256 = 0)`);
+            typed[2] = 300;
+            log(`typed[2] = 300 → ${typed[2]} (300 % 256 = 44)`);
+            typed[3] = -1;
+            log(`typed[3] = -1 → ${typed[3]} (255として解釈)`);
+            typed[4] = 1.5;
+            log(`typed[4] = 1.5 → ${typed[4]} (小数点以下切り捨て)`);
+
+            log('\n※ Uint8Arrayは型安全性を提供し、バグを防ぎます', 'info');
+        }
+
+        function demoMethods() {
+            clearDemo();
+            log('=== メソッド比較 ===', 'info');
+
+            const arr = [1, 2, 3, 4, 5];
+            const typed = new Uint8Array([1, 2, 3, 4, 5]);
+
+            log('\n【map() の動作】', 'info');
+            const arrMapped = arr.map(x => x * 2);
+            log(`通常配列.map(x => x * 2): [${arrMapped}] (Array)`);
+            const typedMapped = typed.map(x => x * 2);
+            log(`Uint8Array.map(x => x * 2): [${[...typedMapped]}] (Array! Uint8Arrayではない)`);
+
+            log('\n【push() の動作】', 'warning');
+            arr.push(6);
+            log(`通常配列.push(6): [${arr}] ✓ 動作する`);
+            try {
+                typed.push(6);
+            } catch (e) {
+                log(`Uint8Array.push(6): エラー! "${e.message}"`, 'error');
+            }
+
+            log('\n【set() - Uint8Array専用】', 'success');
+            const typed2 = new Uint8Array(5);
+            typed2.set([10, 20, 30], 1);
+            log(`Uint8Array.set([10, 20, 30], 1): [${[...typed2]}]`);
+
+            log('\n【subarray() vs slice()】', 'success');
+            const sub = typed.subarray(1, 4);
+            log(`subarray(1, 4): [${[...sub]}] (同じバッファを共有)`);
+            sub[0] = 100;
+            log(`sub[0] = 100 後の元配列: [${[...typed]}] (変更が反映される！)`);
+
+            const sliced = new Uint8Array([1,2,3,4,5]).slice(1, 4);
+            log(`slice(1, 4): [${[...sliced]}] (新しいバッファを作成)`);
+        }
+
+        function demoBinary() {
+            clearDemo();
+            log('=== バイナリデータ操作 ===', 'info');
+
+            log('\n【ArrayBufferとの連携】', 'success');
+            const buffer = new ArrayBuffer(8);
+            const uint8View = new Uint8Array(buffer);
+            const uint32View = new Uint32Array(buffer);
+
+            uint8View.set([0x12, 0x34, 0x56, 0x78]);
+            log(`Uint8Array: [${[...uint8View].map(x => '0x' + x.toString(16).padStart(2, '0'))}]`);
+            log(`同じバッファをUint32Viewで見ると: 0x${uint32View[0].toString(16)}`);
+            log(`(リトルエンディアンのため順序が逆になる)`);
+
+            log('\n【DataViewでエンディアン制御】', 'success');
+            const dataView = new DataView(buffer);
+            const valueBE = dataView.getUint32(0, false);
+            const valueLE = dataView.getUint32(0, true);
+            log(`ビッグエンディアン読み取り: 0x${valueBE.toString(16)}`);
+            log(`リトルエンディアン読み取り: 0x${valueLE.toString(16)}`);
+
+            log('\n【Base64変換】', 'success');
+            const data = new Uint8Array([72, 101, 108, 108, 111]); // "Hello"
+            const base64 = btoa(String.fromCharCode(...data));
+            log(`[72, 101, 108, 108, 111] → Base64: "${base64}"`);
+
+            const decoded = new Uint8Array(atob(base64).split('').map(c => c.charCodeAt(0)));
+            log(`Base64デコード → [${[...decoded]}] → "${String.fromCharCode(...decoded)}"`);
+        }
+
+        function demoConversion() {
+            clearDemo();
+            log('=== 相互変換 ===', 'info');
+
+            log('\n【通常配列 → Uint8Array】', 'success');
+            const arr = [10, 20, 30, 40, 50];
+            const typed1 = new Uint8Array(arr);
+            log(`new Uint8Array([10, 20, 30, 40, 50]): [${[...typed1]}]`);
+            const typed2 = Uint8Array.from(arr);
+            log(`Uint8Array.from([...]): [${[...typed2]}]`);
+
+            log('\n【Uint8Array → 通常配列】', 'info');
+            const typed = new Uint8Array([1, 2, 3, 4, 5]);
+            const arr1 = Array.from(typed);
+            log(`Array.from(uint8Array): [${arr1}]`);
+            const arr2 = [...typed];
+            log(`[...uint8Array]: [${arr2}]`);
+
+            log('\n【JSON変換】', 'warning');
+            log(`通常配列: JSON.stringify([1,2,3]) = "${JSON.stringify([1,2,3])}"`);
+            const typedForJson = new Uint8Array([1, 2, 3]);
+            log(`Uint8Array: JSON.stringify(typed) = "${JSON.stringify(typedForJson)}"`);
+            log(`→ {"0":1,"1":2,"2":3} オブジェクトとして変換される！`);
+            log(`→ 配列として変換: JSON.stringify([...typed]) = "${JSON.stringify([...typedForJson])}"`);
+
+            log('\n【文字列変換】', 'success');
+            const text = "Hello";
+            const encoder = new TextEncoder();
+            const encoded = encoder.encode(text);
+            log(`TextEncoder.encode("Hello"): [${[...encoded]}]`);
+
+            const decoder = new TextDecoder();
+            const decoded = decoder.decode(encoded);
+            log(`TextDecoder.decode([...]): "${decoded}"`);
+        }
+
+        // 初期化
+        initMemoryVisualization();
+    </script>
+</body>
+</html>

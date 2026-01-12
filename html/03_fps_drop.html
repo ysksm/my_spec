@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FPS低下デモ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #1a1a2e;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        h1 {
+            color: #eee;
+            margin-bottom: 10px;
+        }
+
+        .info {
+            color: #aaa;
+            margin-bottom: 20px;
+            text-align: center;
+            line-height: 1.6;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: bold;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .btn-light {
+            background: linear-gradient(135deg, #feca57, #ff9f43);
+            color: #333;
+        }
+
+        .btn-medium {
+            background: linear-gradient(135deg, #ff9ff3, #f368e0);
+            color: #fff;
+        }
+
+        .btn-heavy {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: #fff;
+        }
+
+        .btn-extreme {
+            background: linear-gradient(135deg, #8b0000, #4a0000);
+            color: #fff;
+        }
+
+        .btn-reset {
+            background: linear-gradient(135deg, #54a0ff, #2e86de);
+            color: #fff;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(10, 50px);
+            grid-template-rows: repeat(6, 50px);
+            gap: 4px;
+            padding: 20px;
+            background-color: #16213e;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .cell {
+            width: 50px;
+            height: 50px;
+            background-color: #0f3460;
+            border-radius: 6px;
+            transition: transform 0.1s ease;
+        }
+
+        .cell.active {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px currentColor;
+        }
+
+        .stats {
+            margin-top: 20px;
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .stat-box {
+            background-color: #16213e;
+            padding: 15px 25px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-label {
+            color: #aaa;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        #fps-value {
+            color: #4ecca3;
+        }
+
+        #fps-value.warning {
+            color: #feca57;
+        }
+
+        #fps-value.danger {
+            color: #ff6b6b;
+        }
+
+        #load-value {
+            color: #54a0ff;
+        }
+
+        .load-indicator {
+            margin-top: 20px;
+            width: 300px;
+            height: 20px;
+            background-color: #0f3460;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .load-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #4ecca3, #feca57, #ff6b6b);
+            transition: width 0.3s;
+        }
+
+        .warning-text {
+            color: #ff6b6b;
+            margin-top: 10px;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .warning-text.visible {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <h1>⚡ FPS低下デモ</h1>
+    <p class="info">
+        ボタンを押すとメインスレッドに負荷がかかり、FPSが低下します<br>
+        アニメーションがカクつく様子を観察してください
+    </p>
+    
+    <div class="controls">
+        <button class="btn-light" onclick="addLoad('light')">軽い負荷</button>
+        <button class="btn-medium" onclick="addLoad('medium')">中程度の負荷</button>
+        <button class="btn-heavy" onclick="addLoad('heavy')">重い負荷</button>
+        <button class="btn-extreme" onclick="addLoad('extreme')">極端な負荷</button>
+        <button class="btn-reset" onclick="resetLoad()">リセット</button>
+    </div>
+
+    <div class="grid" id="grid"></div>
+
+    <div class="stats">
+        <div class="stat-box">
+            <div class="stat-label">フレームレート</div>
+            <div class="stat-value"><span id="fps-value">60</span> FPS</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">負荷レベル</div>
+            <div class="stat-value" id="load-value">0</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">処理時間</div>
+            <div class="stat-value"><span id="process-time">0</span> ms</div>
+        </div>
+    </div>
+
+    <div class="load-indicator">
+        <div class="load-bar" id="load-bar"></div>
+    </div>
+
+    <p class="warning-text" id="warning">⚠️ 高負荷状態！ブラウザがカクついています</p>
+
+    <script>
+        const COLS = 10;
+        const ROWS = 6;
+        const TOTAL_CELLS = COLS * ROWS;
+        
+        // グリッドを作成
+        const grid = document.getElementById('grid');
+        const cells = [];
+        
+        for (let i = 0; i < TOTAL_CELLS; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            grid.appendChild(cell);
+            cells.push(cell);
+        }
+
+        const colors = [
+            '#ff6b6b', '#feca57', '#48dbfb', '#ff9ff3', '#54a0ff',
+            '#5f27cd', '#00d2d3', '#ff9f43', '#10ac84', '#ee5a24'
+        ];
+
+        let currentIndex = 0;
+        let colorIndex = 0;
+        let loadLevel = 0;
+        let fpsHistory = [];
+        
+        // 負荷を追加する関数
+        function addLoad(type) {
+            switch(type) {
+                case 'light':
+                    loadLevel += 1;
+                    break;
+                case 'medium':
+                    loadLevel += 3;
+                    break;
+                case 'heavy':
+                    loadLevel += 7;
+                    break;
+                case 'extreme':
+                    loadLevel += 15;
+                    break;
+            }
+            loadLevel = Math.min(loadLevel, 30);
+            updateLoadDisplay();
+        }
+
+        function resetLoad() {
+            loadLevel = 0;
+            updateLoadDisplay();
+        }
+
+        function updateLoadDisplay() {
+            document.getElementById('load-value').textContent = loadLevel;
+            document.getElementById('load-bar').style.width = `${(loadLevel / 30) * 100}%`;
+            
+            const warning = document.getElementById('warning');
+            if (loadLevel >= 10) {
+                warning.classList.add('visible');
+            } else {
+                warning.classList.remove('visible');
+            }
+        }
+
+        // 重い処理をシミュレート
+        function heavyComputation() {
+            const startTime = performance.now();
+            
+            // 負荷レベルに応じて重い計算を実行
+            for (let i = 0; i < loadLevel; i++) {
+                // 素数計算（CPUを消費）
+                let count = 0;
+                for (let n = 2; n < 3000; n++) {
+                    let isPrime = true;
+                    for (let j = 2; j <= Math.sqrt(n); j++) {
+                        if (n % j === 0) {
+                            isPrime = false;
+                            break;
+                        }
+                    }
+                    if (isPrime) count++;
+                }
+                
+                // 大量の配列操作
+                const arr = [];
+                for (let j = 0; j < 5000; j++) {
+                    arr.push(Math.random());
+                }
+                arr.sort();
+                
+                // DOM操作（レイアウト再計算を強制）
+                if (i % 2 === 0) {
+                    const dummy = document.createElement('div');
+                    dummy.style.width = '100px';
+                    document.body.appendChild(dummy);
+                    dummy.offsetHeight; // 強制リフロー
+                    document.body.removeChild(dummy);
+                }
+            }
+            
+            const endTime = performance.now();
+            return endTime - startTime;
+        }
+
+        // FPS計測
+        let lastFrameTime = performance.now();
+        let frameCount = 0;
+        let lastFpsUpdate = performance.now();
+
+        function animate() {
+            const now = performance.now();
+            frameCount++;
+
+            // 重い処理を実行
+            const processTime = heavyComputation();
+            document.getElementById('process-time').textContent = processTime.toFixed(1);
+
+            // 1秒ごとにFPSを更新
+            if (now - lastFpsUpdate >= 1000) {
+                const fps = Math.round(frameCount * 1000 / (now - lastFpsUpdate));
+                const fpsElement = document.getElementById('fps-value');
+                fpsElement.textContent = fps;
+                
+                // FPSに応じて色を変更
+                fpsElement.classList.remove('warning', 'danger');
+                if (fps < 30) {
+                    fpsElement.classList.add('danger');
+                } else if (fps < 50) {
+                    fpsElement.classList.add('warning');
+                }
+                
+                frameCount = 0;
+                lastFpsUpdate = now;
+            }
+
+            // アニメーション更新
+            const prevIndex = (currentIndex - 1 + TOTAL_CELLS) % TOTAL_CELLS;
+            cells[prevIndex].classList.remove('active');
+            cells[prevIndex].style.backgroundColor = '#0f3460';
+            
+            const color = colors[colorIndex];
+            cells[currentIndex].style.backgroundColor = color;
+            cells[currentIndex].style.color = color;
+            cells[currentIndex].classList.add('active');
+            
+            currentIndex = (currentIndex + 1) % TOTAL_CELLS;
+            
+            if (currentIndex === 0) {
+                colorIndex = (colorIndex + 1) % colors.length;
+            }
+
+            lastFrameTime = now;
+            requestAnimationFrame(animate);
+        }
+
+        // アニメーション開始
+        animate();
+    </script>
+</body>
+</html>
